@@ -140,10 +140,10 @@ public class MultiModuleContainer<TILE extends TileEntity> extends BaseContainer
     // Is the slot from a module?
     if (container != this) {
       // Try moving module -> tile inventory
-      nothingDone &= this.moveToTileInventory(itemstack);
+      nothingDone &= this.moveToTileInventory(itemstack, true);
 
       // Try moving module -> player inventory
-      nothingDone &= this.moveToPlayerInventory(itemstack);
+      nothingDone &= this.moveToPlayerInventory(itemstack, true);
     }
     // Is the slot from the tile?
     else if (index < this.subContainerSlotStart || (index < this.playerInventoryStart && this.subContainerSlotStart < 0)) {
@@ -151,18 +151,18 @@ public class MultiModuleContainer<TILE extends TileEntity> extends BaseContainer
       nothingDone &= this.refillAnyContainer(itemstack, this.subContainers);
 
       // Try moving module -> player inventory
-      nothingDone &= this.moveToPlayerInventory(itemstack);
+      nothingDone &= this.moveToPlayerInventory(itemstack, true);
 
       // Try moving module -> all submodules
-      nothingDone &= this.moveToAnyContainer(itemstack, this.subContainers);
+      nothingDone &= this.moveToAnyContainer(itemstack, this.subContainers, true);
     }
     // Slot is from the player inventory (if present)
     else if (index >= this.playerInventoryStart && this.playerInventoryStart >= 0) {
       // Try moving player -> tile inventory
-      nothingDone &= this.moveToTileInventory(itemstack);
+      nothingDone &= this.moveToTileInventory(itemstack, true);
 
       // try moving player -> modules
-      nothingDone &= this.moveToAnyContainer(itemstack, this.subContainers);
+      nothingDone &= this.moveToAnyContainer(itemstack, this.subContainers, true);
     }
     // you violated some assumption or something. Shame on you.
     else {
@@ -196,6 +196,10 @@ public class MultiModuleContainer<TILE extends TileEntity> extends BaseContainer
   }
 
   protected boolean moveToTileInventory(ItemStack itemstack) {
+    return this.moveToTileInventory(itemstack, false);
+  }
+
+  protected boolean moveToTileInventory(ItemStack itemstack, boolean shiftClick) {
     if (itemstack.isEmpty()) {
       return false;
     }
@@ -204,24 +208,32 @@ public class MultiModuleContainer<TILE extends TileEntity> extends BaseContainer
     if (end < 0) {
       end = this.playerInventoryStart;
     }
-    return !this.mergeItemStack(itemstack, 0, end, false);
+    return !this.mergeItemStack(itemstack, 0, end, false, shiftClick);
   }
 
   protected boolean moveToPlayerInventory(ItemStack itemstack) {
+    return this.moveToPlayerInventory(itemstack, false);
+  }
+
+  protected boolean moveToPlayerInventory(ItemStack itemstack, boolean shiftClick) {
     if (itemstack.isEmpty()) {
       return false;
     }
 
-    return this.playerInventoryStart > 0 && !this.mergeItemStack(itemstack, this.playerInventoryStart, this.inventorySlots.size(), true);
+    return this.playerInventoryStart > 0 && !this.mergeItemStack(itemstack, this.playerInventoryStart, this.inventorySlots.size(), true, shiftClick);
   }
 
   protected boolean moveToAnyContainer(ItemStack itemstack, Collection<Container> containers) {
+    return this.moveToAnyContainer(itemstack, containers, false);
+  }
+
+  protected boolean moveToAnyContainer(ItemStack itemstack, Collection<Container> containers, boolean shiftClick) {
     if (itemstack.isEmpty()) {
       return false;
     }
 
     for (Container submodule : containers) {
-      if (this.moveToContainer(itemstack, submodule)) {
+      if (this.moveToContainer(itemstack, submodule, shiftClick)) {
         return true;
       }
     }
@@ -230,8 +242,12 @@ public class MultiModuleContainer<TILE extends TileEntity> extends BaseContainer
   }
 
   protected boolean moveToContainer(ItemStack itemstack, Container container) {
+    return this.moveToContainer(itemstack, container, false);
+  }
+
+  protected boolean moveToContainer(ItemStack itemstack, Container container, boolean shiftClick) {
     Pair<Integer, Integer> range = this.subContainerSlotRanges.get(container);
-    return !this.mergeItemStack(itemstack, range.getLeft(), range.getRight(), false);
+    return !this.mergeItemStack(itemstack, range.getLeft(), range.getRight(), false, shiftClick);
   }
 
   protected boolean refillAnyContainer(ItemStack itemstack, Collection<Container> containers) {

@@ -182,12 +182,12 @@ public class BaseContainer<TILE extends TileEntity> extends Container {
       // Is it a slot in the main inventory? (aka not player inventory)
       if (index < this.playerInventoryStart) {
         // try to put it into the player inventory (if we have a player inventory)
-        if (!this.mergeItemStack(itemstack1, this.playerInventoryStart, end, true)) {
+        if (!this.mergeItemStack(itemstack1, this.playerInventoryStart, end, true, true)) {
           return ItemStack.EMPTY;
         }
       }
       // Slot is in the player inventory (if it exists), transfer to main inventory
-      else if (!this.mergeItemStack(itemstack1, 0, this.playerInventoryStart, false)) {
+      else if (!this.mergeItemStack(itemstack1, 0, this.playerInventoryStart, false, true)) {
         return ItemStack.EMPTY;
       }
 
@@ -204,9 +204,13 @@ public class BaseContainer<TILE extends TileEntity> extends Container {
   // Fix for a vanilla bug: doesn't take Slot.getMaxStackSize into account
   @Override
   protected boolean mergeItemStack(ItemStack stack, int startIndex, int endIndex, boolean useEndIndex) {
+	  return this.mergeItemStack(stack, startIndex, endIndex, useEndIndex, false);
+  }
+
+  protected boolean mergeItemStack(ItemStack stack, int startIndex, int endIndex, boolean useEndIndex, boolean shiftClick) {
     boolean ret = this.mergeItemStackRefill(stack, startIndex, endIndex, useEndIndex);
     if (!stack.isEmpty() && stack.getCount() > 0) {
-      ret |= this.mergeItemStackMove(stack, startIndex, endIndex, useEndIndex);
+      ret |= this.mergeItemStackMove(stack, startIndex, endIndex, useEndIndex, shiftClick);
     }
     return ret;
   }
@@ -262,6 +266,11 @@ public class BaseContainer<TILE extends TileEntity> extends Container {
 
   // only moves items into empty slots
   protected boolean mergeItemStackMove(ItemStack stack, int startIndex, int endIndex, boolean useEndIndex) {
+	  return this.mergeItemStackMove(stack, startIndex, endIndex, useEndIndex, false);
+  }
+
+  // only moves items into empty slots
+  protected boolean mergeItemStackMove(ItemStack stack, int startIndex, int endIndex, boolean useEndIndex, boolean shiftClick) {
     if (stack.getCount() <= 0) {
       return false;
     }
@@ -280,7 +289,14 @@ public class BaseContainer<TILE extends TileEntity> extends Container {
       ItemStack itemstack1 = slot.getStack();
 
       // Forge: Make sure to respect isItemValid in the slot.
-      if (itemstack1.isEmpty() && slot.isItemValid(stack) && this.canMergeSlot(stack, slot)) {
+      boolean valid;
+      if (shiftClick && slot instanceof IShiftOnlyFilterSlot) {
+        valid = ((IShiftOnlyFilterSlot) slot).isItemValidOnShiftClick(stack);
+      } else {
+        valid = slot.isItemValid(stack);
+      }
+
+      if (itemstack1.isEmpty() && valid && this.canMergeSlot(stack, slot)) {
         int limit = slot.getItemStackLimit(stack);
         ItemStack stack2 = stack.copy();
 
